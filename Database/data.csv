@@ -1,0 +1,51 @@
+route_id,route_name,stop_order,stop_id,stop_name,next_stop_id,next_stop_name,eta_to_next_stop
+R001,"Route 1 - Nehru Colony / Ambiwala",1,S001,"Graphic Era",S002,"Clement Town",6
+R001,"Route 1 - Nehru Colony / Ambiwala",2,S002,"Clement Town",S003,Subhasnagar,5
+R001,"Route 1 - Nehru Colony / Ambiwala",3,S003,Subhasnagar,S004,ISBT,6
+R001,"Route 1 - Nehru Colony / Ambiwala",4,S004,ISBT,S005,"Kargi Chowk",7
+R001,"Route 1 - Nehru Colony / Ambiwala",5,S005,"Kargi Chowk",S006,"Bangali Kothi Chowk",6
+R001,"Route 1 - Nehru Colony / Ambiwala",6,S006,"Bangali Kothi Chowk",S007,"Rispana Bridge",7
+R001,"Route 1 - Nehru Colony / Ambiwala",7,S007,"Rispana Bridge",S008,"Nehru Colony",6
+R001,"Route 1 - Nehru Colony / Ambiwala",8,S008,"Nehru Colony",S009,"Fountain Chowk",5
+R001,"Route 1 - Nehru Colony / Ambiwala",9,S009,"Fountain Chowk",S010,Ambiwala,7
+R001,"Route 1 - Nehru Colony / Ambiwala",10,S010,Ambiwala,S011,"6 No Puliya",6
+R001,"Route 1 - Nehru Colony / Ambiwala",11,S011,"6 No Puliya",S012,"Dobhal Chowk",6
+R001,"Route 1 - Nehru Colony / Ambiwala",12,S012,"Dobhal Chowk",S013,"Raipur Chowk",7
+R001,"Route 1 - Nehru Colony / Ambiwala",13,S013,"Raipur Chowk",S014,Ranjhawala,6
+R001,"Route 1 - Nehru Colony / Ambiwala",14,S014,Ranjhawala,S015,"Gujronwali Chowk",7
+R001,"Route 1 - Nehru Colony / Ambiwala",15,S015,"Gujronwali Chowk",S016,Donali,6
+R001,"Route 1 - Nehru Colony / Ambiwala",16,S016,Donali,S001,"Graphic Era",10
+R001,"Route 1 - Nehru Colony / Ambiwala",17,S001,"Graphic Era",S002,"Clement Town",6
+R002,"Route 2 - Jogiwala / Ring Road",1,S001,"Graphic Era",S002,"Clement Town",6
+R002,"Route 2 - Jogiwala / Ring Road",2,S002,"Clement Town",S003,Subhasnagar,5
+R002,"Route 2 - Jogiwala / Ring Road",3,S003,Subhasnagar,S004,ISBT,6
+R002,"Route 2 - Jogiwala / Ring Road",4,S004,ISBT,S005,"Kargi Chowk",7
+R002,"Route 2 - Jogiwala / Ring Road",5,S005,"Kargi Chowk",S006,"Bangali Kothi Chowk",6
+R002,"Route 2 - Jogiwala / Ring Road",6,S006,"Bangali Kothi Chowk",S007,"Rispana Bridge",7
+R002,"Route 2 - Jogiwala / Ring Road",7,S007,"Rispana Bridge",S017,Jogiwala,6
+R002,"Route 2 - Jogiwala / Ring Road",8,S017,Jogiwala,S018,"Ring Road",7
+R002,"Route 2 - Jogiwala / Ring Road",9,S018,"Ring Road",S011,"6 No Puliya",6
+R002,"Route 2 - Jogiwala / Ring Road",10,S011,"6 No Puliya",S012,"Dobhal Chowk",6
+R002,"Route 2 - Jogiwala / Ring Road",11,S012,"Dobhal Chowk",S013,"Raipur Chowk",7
+R002,"Route 2 - Jogiwala / Ring Road",12,S013,"Raipur Chowk",S014,Ranjhawala,6
+R002,"Route 2 - Jogiwala / Ring Road",13,S014,Ranjhawala,S015,"Gujronwali Chowk",7
+R002,"Route 2 - Jogiwala / Ring Road",14,S015,"Gujronwali Chowk",S016,Donali,6
+R002,"Route 2 - Jogiwala / Ring Road",15,S016,Donali,S001,"Graphic Era",10
+R002,"Route 2 - Jogiwala / Ring Road",16,S001,"Graphic Era",S002,"Clement Town",6
+R003,"Route 3 - Mokhampur / Balawala",1,S001,"Graphic Era",S002,"Clement Town",6
+R003,"Route 3 - Mokhampur / Balawala",2,S002,"Clement Town",S003,Subhasnagar,5
+R003,"Route 3 - Mokhampur / Balawala",3,S003,Subhasnagar,S004,ISBT,6
+R003,"Route 3 - Mokhampur / Balawala",4,S004,ISBT,S005,"Kargi Chowk",7
+R003,"Route 3 - Mokhampur / Balawala",5,S005,"Kargi Chowk",S006,"Bangali Kothi Chowk",6
+R003,"Route 3 - Mokhampur / Balawala",6,S006,"Bangali Kothi Chowk",S007,"Rispana Bridge",7
+R003,"Route 3 - Mokhampur / Balawala",7,S007,"Rispana Bridge",S017,Jogiwala,6
+R003,"Route 3 - Mokhampur / Balawala",8,S017,Jogiwala,S019,Mokhampur,7
+R003,"Route 3 - Mokhampur / Balawala",9,S019,Mokhampur,S020,"Mall of Dehradun",7
+R003,"Route 3 - Mokhampur / Balawala",10,S020,"Mall of Dehradun",S021,"Maiynawala Chowk",6
+R003,"Route 3 - Mokhampur / Balawala",11,S021,"Maiynawala Chowk",S022,"Balawala Road",7
+R003,"Route 3 - Mokhampur / Balawala",12,S022,"Balawala Road",S023,"Gullarghati Road",6
+R003,"Route 3 - Mokhampur / Balawala",13,S023,"Gullarghati Road",S024,"Mamchand Chowk",7
+R003,"Route 3 - Mokhampur / Balawala",14,S024,"Mamchand Chowk",S025,"Raipur-Balawala Road",6
+R003,"Route 3 - Mokhampur / Balawala",15,S025,"Raipur-Balawala Road",S016,Donali,7
+R003,"Route 3 - Mokhampur / Balawala",16,S016,Donali,S001,"Graphic Era",10
+R003,"Route 3 - Mokhampur / Balawala",17,S001,"Graphic Era",S002,"Clement Town",6
