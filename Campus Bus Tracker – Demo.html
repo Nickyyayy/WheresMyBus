@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campus Bus Tracker – Demo</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#667085;--bd:#e2e5ea;--ac:#2456d6;--g:#168a45;--r:#d33a2c;--k:#222;--b:#2456d6}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1217;--card:#181c23;--tx:#eceff4;--mut:#98a2b3;--bd:#2a303a;--ac:#6b93ff;--g:#35c473;--r:#ff6b5c;--k:#555;--b:#6b93ff}}
+:root[data-theme="dark"]{--bg:#0f1217;--card:#181c23;--tx:#eceff4;--mut:#98a2b3;--bd:#2a303a;--ac:#6b93ff;--g:#35c473;--r:#ff6b5c;--k:#555;--b:#6b93ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 2px}p.s{color:var(--mut);margin:0 0 14px;font-size:13px}
+nav{display:flex;gap:6px;margin-bottom:14px}
+nav button{flex:1;padding:9px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;font:inherit;cursor:pointer}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px}
+select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:99px;color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+.G{background:var(--g)}.R{background:var(--r)}.K{background:var(--k)}.B{background:var(--b)}
+.track{display:flex;gap:0;margin:12px 0 4px;overflow-x:auto;padding-bottom:6px}
+.st{flex:0 0 auto;min-width:78px;text-align:center;font-size:11px;color:var(--mut);position:relative;padding-top:16px}
+.st:before{content:"";position:absolute;top:5px;left:0;right:0;height:3px;background:var(--bd)}
+.st i{position:absolute;top:0;left:50%;margin-left:-6px;width:12px;height:12px;border-radius:50%;background:var(--bd);border:2px solid var(--card)}
+.st.done i,.st.done:before{background:var(--mut)}
+.st.cur i{background:var(--g);box-shadow:0 0 0 3px color-mix(in srgb,var(--g) 30%,transparent)}
+.st.cur{color:var(--tx);font-weight:600}.st.mine{color:var(--ac);font-weight:600}
+button.a{padding:9px 14px;border-radius:8px;border:0;background:var(--ac);color:#fff;font:inherit;cursor:pointer}
+button.a.o{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+.m{color:var(--mut);font-size:13px}.leg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hint{font-size:12px;color:var(--mut);margin-top:16px}
+</style></head><body><main>
+<h1>🚌 Campus Bus Tracker</h1>
+<p class="s">Hardware-independent: location = last stop the conductor confirmed. Demo uses in-memory data (stands in for MySQL).</p>
+<nav id="nav"></nav><div id="v"></div>
+<p class="hint">Tip: open this page in two tabs — update a bus in the Conductor tab and watch the Student tab change.</p>
+</main>
+<script>
+// ---- Data structures ----
+class Node{constructor(stop){this.stop=stop;this.next=null}}          // singly linked list node
+class Route{                                                           // route = linked list of stops
+  constructor(stops){this.head=null;let t=null;for(const s of stops){const n=new Node(s);t?t.next=n:this.head=n;t=n}}
+  toArray(){const a=[];for(let n=this.head;n;n=n.next)a.push(n.stop);return a}
+  nodeAt(i){let n=this.head;while(i-->0&&n&&n.next)n=n.next;return n}
+}
+class Bus{
+  constructor(id,name,stops){this.id=id;this.name=name;this.route=new Route(stops);this.stops=this.route.toArray();this.idx=0;this.maint=false}
+  get current(){return this.route.nodeAt(this.idx).stop}
+  get next(){const n=this.route.nodeAt(this.idx).next;return n?n.stop:null}   // "Next stop" panel
+  advance(){if(this.next)this.idx++}
+}
+const buses=[
+ new Bus("UK07-101","Route A – Clement Town",["Clement Town","ISBT","Clock Tower","Railway Stn","Ballupur","Prem Nagar","GEU Campus"]),
+ new Bus("UK07-102","Route B – Rajpur Road",["Rajpur Road","Mussoorie Diversion","Clock Tower","Ballupur","Prem Nagar","GEU Campus"]),
+ new Bus("UK07-103","Route C – Sahastradhara",["Sahastradhara Rd","Dilaram Chowk","Clock Tower","Railway Stn","ISBT","GEU Campus"])
+];
+// Hash table: stop -> [{bus, pos}]  (O(1) lookup of buses serving a stop)
+const stopMap=new Map();
+buses.forEach(b=>b.stops.forEach((s,p)=>{if(!stopMap.has(s))stopMap.set(s,[]);stopMap.get(s).push({bus:b,pos:p})}));
+const allStops=[...stopMap.keys()].sort();
+
+// ---- Persistence (optional, lets tabs sync) ----
+const K="gebus-demo";
+function save(){try{localStorage.setItem(K,JSON.stringify(buses.map(b=>[b.idx,b.maint])))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(K)||"null");if(d)d.forEach((x,i)=>{buses[i].idx=x[0];buses[i].maint=x[1]})}catch(e){}}
+load();addEventListener("storage",()=>{load();render()});
+
+// ---- Status logic ----
+function status(b,pos){
+  if(b.maint)return{c:"K",t:"Under maintenance"};
+  if(b.idx>pos)return{c:"R",t:"Missed"};
+  if(b.idx===pos)return{c:"B",t:"At your stop now"};
+  const n=pos-b.idx;return{c:"G",t:`Available · ${n} stop${n>1?"s":""} away`};
+}
+const rank={B:0,G:1,R:2,K:3};
+let tab="student",myStop=localStorage.getItem?(()=>{try{return localStorage.getItem("gstop")}catch(e){return null}})():null;
+if(!stopMap.has(myStop))myStop="Clock Tower";
+
+function track(b,mine){return `<div class="track">${b.stops.map((s,i)=>`<div class="st ${i<b.idx?"done":""} ${i===b.idx?"cur":""} ${s===mine?"mine":""}"><i></i>${s}</div>`).join("")}</div>`}
+
+const views={
+ student(){
+  const list=stopMap.get(myStop).map(({bus,pos})=>({bus,pos,s:status(bus,pos)})).sort((a,b)=>rank[a.s.c]-rank[b.s.c]);
+  return `<select id="sel">${allStops.map(s=>`<option ${s===myStop?"selected":""}>${s}</option>`).join("")}</select>
+  <div class="leg"><span class="badge G">Available</span><span class="badge B">Arrived</span><span class="badge R">Missed</span><span class="badge K">Maintenance</span></div>`+
+  list.map(({bus,s})=>`<div class="card"><div class="row"><b>${bus.name}</b><span class="badge ${s.c}">${s.t}</span></div>
+  <div class="m">${bus.id} · Now at: ${bus.current} · Next: ${bus.next||"— end of route"}</div>${track(bus,myStop)}</div>`).join("");
+ },
+ conductor(){
+  return buses.map(b=>`<div class="card"><div class="row"><b>${b.name}</b><span class="m">${b.id}</span></div>
+  <div style="margin:8px 0">Current: <b>${b.current}</b> &nbsp;→&nbsp; Next stop: <b>${b.next||"Trip complete"}</b></div>
+  ${track(b)}<div class="row" style="justify-content:flex-start">
+  <button class="a" data-adv="${b.id}" ${(!b.next||b.maint)?"disabled":""}>Reached ${b.next||"—"}</button>
+  <button class="a o" data-rst="${b.id}">Reset trip</button></div></div>`).join("");
+ },
+ admin(){
+  return buses.map(b=>{const s=b.maint?{c:"K",t:"Under maintenance"}:b.next?{c:"G",t:"Running"}:{c:"B",t:"Trip complete"};
+  return `<div class="card"><div class="row"><div><b>${b.name}</b><div class="m">${b.id} · at ${b.current} · ${Math.round(100*b.idx/(b.stops.length-1))}% of route</div></div>
+  <div class="row"><span class="badge ${s.c}">${s.t}</span><button class="a o" data-mt="${b.id}">${b.maint?"Mark in service":"Mark maintenance"}</button></div></div></div>`}).join("")+
+  `<div class="card m">Stops: ${allStops.length} · Buses: ${buses.length} · Hash-table entries: ${[...stopMap.values()].reduce((a,x)=>a+x.length,0)}</div>`;
+ }
+};
+function render(){
+  document.getElementById("nav").innerHTML=[["student","Student"],["conductor","Conductor"],["admin","Admin"]].map(([k,l])=>`<button data-t="${k}" class="${tab===k?"on":""}">${l}</button>`).join("");
+  document.getElementById("v").innerHTML=views[tab]();
+}
+const by=id=>buses.find(b=>b.id===id);
+document.addEventListener("click",e=>{
+  const d=e.target.dataset;
+  if(d.t)tab=d.t;
+  else if(d.adv)by(d.adv).advance();
+  else if(d.rst){const b=by(d.rst);b.idx=0}
+  else if(d.mt){const b=by(d.mt);b.maint=!b.maint}
+  else return;
+  save();render();
+});
+document.addEventListener("change",e=>{if(e.target.id==="sel"){myStop=e.target.value;try{localStorage.setItem("gstop",myStop)}catch(x){}render()}});
+render();
+</script></body></html>
