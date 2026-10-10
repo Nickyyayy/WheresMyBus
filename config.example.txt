@@ -1,0 +1,7 @@
+db_host=localhost
+db_port=3306
+db_user=PLACEHOLDER_DB_USER
+db_password=PLACEHOLDER_DB_PASSWORD
+db_name=where_my_bus
+mysql_path=mysql              # full path to mysql.exe if "mysql" is not in PATH
+open_browser=yes              # Windows only , replace with config.txt

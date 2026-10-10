@@ -1,0 +1,6 @@
+config.txt
+build/
+wheresmybus
+wheresmybus.exe
+output/*.html
+output/*.tmp
