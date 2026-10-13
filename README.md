@@ -115,7 +115,7 @@ OOP : Used to model buses, routes, stops and users as objects.
 
 DSA : Used for route traversal, lookup and network processing.
 
-HTML5 / CSS3 / JavaScript : Used for the web-based user interfaces.
+HTML5 / CSS3 : Used for the web-based user interfaces.
 
 MySQL : Used to store routes, stops, buses and ETA information.
 
