@@ -4,3 +4,5 @@ wheresmybus
 wheresmybus.exe
 output/*.html
 output/*.tmp
+backend/.vscode/
+
