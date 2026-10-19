@@ -120,7 +120,7 @@ bool Bus::getHasFreeSeats() const {
     return seatsAvailable;
 }
 
-// << operator overload
+
 ostream& operator<<(ostream& os, const Bus& bus) {
     os << "Bus " << bus.busId << " | route " << bus.routeId << " | ";
     if (bus.currentSequenceIndex == 0)

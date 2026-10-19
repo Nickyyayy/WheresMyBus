@@ -49,4 +49,4 @@ public:
     vector<Update> getHistory() const;
 };
 
-#endif // BUS_STATUS_ENGINE_H
+#endif 

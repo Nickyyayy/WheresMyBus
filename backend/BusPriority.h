@@ -48,7 +48,7 @@ struct BusDisplayPriority {
     }
 };
 
-// Sorts a list of buses according to display priority 
+// Sorts a list of Buses according to display priority 
 inline vector<Bus*> sortBusesForDisplay(const vector<Bus*>& buses) {
     BinaryHeap<Bus*, BusDisplayPriority> heap;
     for (Bus* b : buses) {

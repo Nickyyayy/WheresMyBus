@@ -47,7 +47,7 @@ public:
     void setSeatsAvailable(bool available);
 
 
-    // Calculates the status color of this bus relative to a queried route position
+    // status color of this bus relative to route position?
     StopColor getStatusForStop(int queriedSequenceIndex) const;
 
     string getBusId() const;

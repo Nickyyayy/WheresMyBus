@@ -10,7 +10,6 @@ Route::Route(string id, string name, string description, string startStopId, str
       totalStops(0) {}
 
 Route::~Route() {
-    // save next pointer before deleting each node
     RouteStopNode* current = head;
     while (current != nullptr) {
         RouteStopNode* nextNode = current->getNext();
@@ -29,7 +28,7 @@ bool Route::addStopToEnd(RouteStopNode* node) {
     if(node->getNext() != nullptr) {
         return false;
     }
-// to verify sequenceIndex is strictly sequential: 1, 2, 3...
+// sequenceIndex shoukd be: 1, 2, 3...
     if (node->getSequenceIndex() != totalStops + 1) {
         return false;
     }

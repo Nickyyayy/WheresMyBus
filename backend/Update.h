@@ -18,7 +18,7 @@ private:
     string timestamp;
     bool tripCompleted;
 
-    // Previous state snapshot captured when update is applied
+    // Previous state captured when update is applied
     bool previousRecorded;
     string previousStopId;
     int previousSequenceIndex;

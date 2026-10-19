@@ -9,8 +9,7 @@
 
 using namespace std;
 
-// RouteRegistry owns Route objects in memory using a hash table
-// Maintains insertion order for deterministic display
+
 class RouteRegistry {
 private:
     unordered_map<string, Route*> routeMap;
@@ -23,7 +22,6 @@ public:
     RouteRegistry(const RouteRegistry&) = delete;
     RouteRegistry& operator=(const RouteRegistry&) = delete;
 
-    // Takes ownership of route on success. Returns false if nullptr or duplicate (caller keeps ownership).
     bool addRoute(Route* route);
 
     Route* getRouteById(const string& routeId) const;
@@ -34,4 +32,4 @@ public:
     vector<pair<string, string>> getDistinctStops() const;
 };
 
-#endif // ROUTE_REGISTRY_H
+#endif

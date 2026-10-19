@@ -7,7 +7,6 @@
 
 using namespace std;
 
-// Route represents a predefined sequence of stops as a singly linked list
 class Route {
 private:
     string routeId;
@@ -27,15 +26,14 @@ public:
     Route(const Route&) = delete;
     Route& operator=(const Route&) = delete;
 
-    // Adds a stop node to the end of the linked list
-    // Returns false and does not take ownership if invalid (caller deletes node)
+   
     bool addStopToEnd(RouteStopNode* node);
 
     RouteStopNode* getHead() const;
     RouteStopNode* getLastStop() const;
     RouteStopNode* findStopByIndex(int sequenceIndex) const;
-    RouteStopNode* findStopById(const string& stopId) const;      // First match
-    RouteStopNode* findLastStopById(const string& stopId) const;  // Last match
+    RouteStopNode* findStopById(const string& stopId) const;      
+    RouteStopNode* findLastStopById(const string& stopId) const;  
 
     int getTotalStops() const;
     string getRouteId() const;
@@ -47,4 +45,4 @@ public:
     void printRoute() const;
 };
 
-#endif // ROUTE_H
+#endif 
