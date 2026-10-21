@@ -16,4 +16,4 @@ bool isValidPosition(const Route* route, const string& stopId, int sequenceIndex
 // Checks foundational route structural constraints (>=2 stops, head == startStopId, contains restStopId)
 bool isValidRouteStructure(const Route* route, string& problemOut);
 
-#endif // ROUTE_VALIDATION_H
+#endif 

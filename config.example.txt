@@ -1,0 +1,7 @@
+db_host=localhost
+db_port=3306
+db_user=root
+db_password=12345
+db_name=where_my_bus
+mysql_path=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe
+open_browser=yes              
