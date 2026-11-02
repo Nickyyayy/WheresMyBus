@@ -38,9 +38,10 @@ string Conductor::getAssignedBusId() const {
 }
 
 Update Conductor::createUpdate(string newStopId, int newSequenceIndex, bool seatsAvailable,
-                               BusState newState, bool tripCompleted) const {
+                               BusState newState, bool tripCompleted,
+                               JourneyDirection direction) const {
     return Update(Update::generateId(), assignedBusId, move(newStopId), newSequenceIndex,
-                  seatsAvailable, newState, Update::currentTimestamp(), tripCompleted);
+                  seatsAvailable, newState, Update::currentTimestamp(), tripCompleted, direction);
 }
 
 // DepartmentHead

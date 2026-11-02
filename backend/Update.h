@@ -15,19 +15,22 @@ private:
     int newSequenceIndex;
     bool newSeatsAvailable;
     BusState newState;
+    JourneyDirection newDirection;
     string timestamp;
     bool tripCompleted;
 
-    // Previous state captured when update is applied
+    // Previous state snapshot captured when update is applied
     bool previousRecorded;
     string previousStopId;
     int previousSequenceIndex;
     bool previousSeatsAvailable;
     BusState previousState;
+    JourneyDirection previousDirection;
 
 public:
     Update(string id, string busId, string newStopId, int newSequenceIndex,
-           bool newSeatsAvailable, BusState newState, string timestamp, bool tripCompleted = false);
+           bool newSeatsAvailable, BusState newState, string timestamp, bool tripCompleted = false,
+           JourneyDirection newDirection = JourneyDirection::DROP);
 
     string getUpdateId() const;
     string getBusId() const;
@@ -35,15 +38,17 @@ public:
     int getNewSequenceIndex() const;
     bool getNewSeatsAvailable() const;
     BusState getNewState() const;
+    JourneyDirection getNewDirection() const;
     string getTimestamp() const;
     bool getTripCompleted() const;
 
-    void setPrevious(string stopId, int sequenceIndex, bool seatsAvailable, BusState state);
+    void setPrevious(string stopId, int sequenceIndex, bool seatsAvailable, BusState state, JourneyDirection dir = JourneyDirection::DROP);
     bool hasPrevious() const;
     string getPreviousStopId() const;
     int getPreviousSequenceIndex() const;
     bool getPreviousSeatsAvailable() const;
     BusState getPreviousState() const;
+    JourneyDirection getPreviousDirection() const;
 
     static string generateId();
     static string currentTimestamp();

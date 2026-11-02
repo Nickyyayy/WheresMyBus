@@ -6,19 +6,20 @@
 
 using namespace std;
 
-// StopType = category of a bus stop 
+// StopType represents the category of a bus stop in the transit network
 enum class StopType {
     COLLEGE,
     STOP,
     REST
 };
 
-// Converts StopType enum -> string representation
+// Converts StopType enum to string representation
 string stopTypeToString(StopType type);
 
+// Parses a string into a StopType enum, throws invalid_argument on unknown text
 StopType stopTypeFromString(const string& str);
 
-
+// Stop represents a physical location in the transit network
 class Stop {
 private:
     string stopId;
@@ -35,4 +36,4 @@ public:
     bool getIsRestStop() const;
 };
 
-#endif 
+#endif // STOP_H

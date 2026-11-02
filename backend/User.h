@@ -6,7 +6,7 @@
 
 using namespace std;
 
-
+// Base class for all system users demonstrating polymorphism
 class User {
 protected:
     string userId;
@@ -21,9 +21,7 @@ public:
     string getName() const;
 };
 
-
-
-
+// Student user with view-only capabilities and a preferred stop
 class Student : public User {
 private:
     string preferredStopId;
@@ -35,9 +33,7 @@ public:
     string getPreferredStopId() const;
 };
 
-
-
-
+// Conductor user operating a specific bus
 class Conductor : public User {
 private:
     string assignedBusId;
@@ -49,12 +45,11 @@ public:
     string getAssignedBusId() const;
 
     Update createUpdate(string newStopId, int newSequenceIndex, bool seatsAvailable,
-                        BusState newState, bool tripCompleted = false) const;
+                        BusState newState, bool tripCompleted = false,
+                        JourneyDirection direction = JourneyDirection::DROP) const;
 };
 
-
-
-
+// Department Head privileged supervisory role
 class DepartmentHead : public User {
 public:
     DepartmentHead(string id, string name);
@@ -62,4 +57,4 @@ public:
     string getRole() const override;
 };
 
-#endif 
+#endif // USER_H

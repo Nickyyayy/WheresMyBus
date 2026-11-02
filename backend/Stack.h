@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <vector>
 
+// Hand-written templated Stack implemented as a linked list
 template <typename T>
 class Stack {
 private:
