@@ -6,7 +6,7 @@
 
 using namespace std;
 
-// RouteStopNode -> a single stop
+// RouteStopNode represents a single stop entry along an ordered bus route linked list
 class RouteStopNode {
 public:
     static const int NO_ETA = -1;                 // Last node: nothing comes next
@@ -17,11 +17,12 @@ private:
     string stopName;
     StopType stopType;
     bool isRestStop;
-    int sequenceIndex;             
-    int etaToNextMinutes;          
-    double distanceToNextKm;       
-    bool etaIsProvisional;         
-    RouteStopNode* next;           // next stop node in route
+    int sequenceIndex;             // 1-based position in route
+    int etaToNextMinutes;          // ETA to next stop in minutes
+    double distanceToNextKm;       // Distance to next stop in km
+    bool etaIsProvisional;         // Flag if ETA is provisional
+    RouteStopNode* next;           // Pointer to next stop node in route (forward)
+    RouteStopNode* prev;           // Pointer to previous stop node in route (backward / Doubly Linked List)
 
 public:
     RouteStopNode(const Stop& stop, int sequenceIndex, int etaToNextMinutes,
@@ -41,6 +42,8 @@ public:
 
     RouteStopNode* getNext() const;
     void setNext(RouteStopNode* nextNode);
+    RouteStopNode* getPrev() const;
+    void setPrev(RouteStopNode* prevNode);
 };
 
-#endif 
+#endif // ROUTE_STOP_NODE_H

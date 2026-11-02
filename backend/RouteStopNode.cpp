@@ -1,4 +1,5 @@
 #include "RouteStopNode.h"
+
 using namespace std;
 
 RouteStopNode::RouteStopNode(const Stop& stop, int sequenceIndex, int etaToNextMinutes,
@@ -11,7 +12,8 @@ RouteStopNode::RouteStopNode(const Stop& stop, int sequenceIndex, int etaToNextM
       etaToNextMinutes(etaToNextMinutes),
       distanceToNextKm(distanceToNextKm),
       etaIsProvisional(etaIsProvisional),
-      next(nullptr) {}
+      next(nullptr),
+      prev(nullptr) {}
 
 string RouteStopNode::getStopId() const {
     return stopId;
@@ -59,4 +61,12 @@ RouteStopNode* RouteStopNode::getNext() const {
 
 void RouteStopNode::setNext(RouteStopNode* nextNode) {
     next = nextNode;
+}
+
+RouteStopNode* RouteStopNode::getPrev() const {
+    return prev;
+}
+
+void RouteStopNode::setPrev(RouteStopNode* prevNode) {
+    prev = prevNode;
 }

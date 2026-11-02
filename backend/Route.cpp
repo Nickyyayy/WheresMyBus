@@ -1,34 +1,38 @@
 #include "Route.h"
+
 using namespace std;
 
 Route::Route(string id, string name, string description, string startStopId, string restStopId)
-    : routeId(move(id)),routeName(move(name)),
+    : routeId(move(id)),
+      routeName(move(name)),
       description(move(description)),
       startStopId(move(startStopId)),
       restStopId(move(restStopId)),
-      head(nullptr),tail(nullptr),
+      head(nullptr),
+      tail(nullptr),
       totalStops(0) {}
 
 Route::~Route() {
+    // Walk the list and save next pointer before deleting each node
     RouteStopNode* current = head;
     while (current != nullptr) {
         RouteStopNode* nextNode = current->getNext();
         delete current;
         current = nextNode;
-        }
+    }
     head = nullptr;
     tail = nullptr;
     totalStops = 0;
 }
 
 bool Route::addStopToEnd(RouteStopNode* node) {
-    if(node == nullptr) {
+    if (node == nullptr) {
         return false;
     }
-    if(node->getNext() != nullptr) {
+    if (node->getNext() != nullptr) {
         return false;
     }
-// sequenceIndex shoukd be: 1, 2, 3...
+    // Verify sequenceIndex is strictly sequential: 1, 2, 3...
     if (node->getSequenceIndex() != totalStops + 1) {
         return false;
     }
@@ -36,12 +40,25 @@ bool Route::addStopToEnd(RouteStopNode* node) {
     if (head == nullptr) {
         head = node;
         tail = node;
+        node->setPrev(nullptr);
     } else {
         tail->setNext(node);
+        node->setPrev(tail);
         tail = node;
     }
     totalStops++;
     return true;
+}
+
+RouteStopNode* Route::findRestStop() const {
+    RouteStopNode* current = head;
+    while (current != nullptr) {
+        if (current->getIsRestStop() || current->getStopId() == restStopId) {
+            return current;
+        }
+        current = current->getNext();
+    }
+    return nullptr;
 }
 
 RouteStopNode* Route::getHead() const {
@@ -77,11 +94,10 @@ RouteStopNode* Route::findStopById(const string& stopId) const {
 RouteStopNode* Route::findLastStopById(const string& stopId) const {
     RouteStopNode* lastMatch = nullptr;
     RouteStopNode* current = head;
-
     while (current != nullptr) {
-        if (current->getStopId() == stopId)
+        if (current->getStopId() == stopId) {
             lastMatch = current;
-
+        }
         current = current->getNext();
     }
     return lastMatch;
@@ -112,21 +128,15 @@ string Route::getRestStopId() const {
 }
 
 void Route::printRoute() const {
-
     cout << "Route " << routeId << ": " << routeName << " (" << totalStops << " stops)" << endl;
     RouteStopNode* current = head;
-
     while (current != nullptr) {
-
         cout << "  #" << current->getSequenceIndex() << " [" << current->getStopId() << "] "
              << current->getStopName();
-
-        if (current->getIsRestStop())
-        {
+        if (current->getIsRestStop()) {
             cout << " (REST)";
         }
-        if (current->hasEtaToNext())
-        {
+        if (current->hasEtaToNext()) {
             cout << " -> ETA " << current->getEtaToNextMinutes() << " min";
         }
         cout << endl;

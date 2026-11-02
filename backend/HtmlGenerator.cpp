@@ -96,7 +96,7 @@ bool HtmlGenerator::writeStudentPage(const BusStatusEngine& engine) const {
     html << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
     html << "<title>Where's My Bus - Student Dashboard</title>\n";
     html << "<link rel=\"stylesheet\" href=\"" << escapeHtml(cssHref) << "\">\n";
-    html << "<script>setTimeout(function(){ location.reload(); }, 2000);</script>\n";
+    html << "<script>setTimeout(function(){ location.reload(); }, 20000);</script>\n";
     html << "<noscript><meta http-equiv=\"refresh\" content=\"2\"></noscript>\n";
     html << "</head>\n<body>\n";
     html << "<div class=\"container\">\n";
