@@ -5,7 +5,8 @@
 #include <unordered_map>
 
 using namespace std;
-//set up application
+
+// Config loads key=value configuration pairs from a text file
 class Config {
 private:
     unordered_map<string, string> settings;
@@ -22,4 +23,4 @@ public:
     string getLastError() const;
 };
 
-#endif 
+#endif // CONFIG_H

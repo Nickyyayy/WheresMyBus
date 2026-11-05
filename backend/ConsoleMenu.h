@@ -1,6 +1,5 @@
 #ifndef CONSOLE_MENU_H
 #define CONSOLE_MENU_H
-// ASCII interactive terminal interface for Student, Conductor, and HOD
 
 #include "BusStatusEngine.h"
 #include "HtmlGenerator.h"
@@ -8,6 +7,7 @@
 
 using namespace std;
 
+// ConsoleMenu provides a plain ASCII interactive terminal interface for Student, Conductor, and HOD
 class ConsoleMenu {
 private:
     BusStatusEngine& engine;
@@ -28,4 +28,4 @@ public:
     void run();
 };
 
-#endif 
+#endif // CONSOLE_MENU_H

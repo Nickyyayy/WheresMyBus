@@ -8,10 +8,12 @@
 
 using namespace std;
 
+// BusRegistry owns Bus objects in memory using a hash table
+// Maintains insertion order for deterministic display
 class BusRegistry {
 private:
     unordered_map<string, Bus*> busMap;
-    vector<string> busIds; 
+    vector<string> busIds; // Deterministic insertion order
 
 public:
     BusRegistry() = default;
@@ -31,4 +33,4 @@ public:
     int getBusCount() const;
 };
 
-#endif 
+#endif // BUS_REGISTRY_H

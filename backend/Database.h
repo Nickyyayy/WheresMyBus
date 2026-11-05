@@ -6,6 +6,8 @@
 
 using namespace std;
 
+// Database manages communication with MySQL by launching mysql.exe as a child process
+// Never links external MySQL libraries
 class Database {
 private:
     string host;

@@ -53,9 +53,11 @@ int ConsoleMenu::readChoice(const string& prompt, int low, int high, int valueIf
 }
 
 void ConsoleMenu::refreshPages() {
+    bool ok0 = html.writeHomePage(engine);
     bool ok1 = html.writeStudentPage(engine);
-    bool ok2 = html.writeHodPage(engine);
-    if (!ok1 || !ok2) {
+    bool ok2 = html.writeConductorPage(engine);
+    bool ok3 = html.writeHodPage(engine);
+    if (!ok0 || !ok1 || !ok2 || !ok3) {
         cout << "  Warning: could not update the web pages in the output folder." << endl;
     }
 }
@@ -218,14 +220,25 @@ void ConsoleMenu::runConductorMenu() {
             }
         } else {
             // Bus is IN_SERVICE, RESTING, or MAINTENANCE
-            int nextPos = bus->getCurrentSequenceIndex() + 1;
-            RouteStopNode* nextNode = route->findStopByIndex(nextPos);
+            RouteStopNode* currNode = route->findStopByIndex(bus->getCurrentSequenceIndex());
+            RouteStopNode* nextNode = nullptr;
+            if (bus->getState() == BusState::RESTING || bus->getDirection() == JourneyDirection::PICKUP) {
+                if (currNode != nullptr) {
+                    nextNode = currNode->getPrev();
+                }
+            } else {
+                if (currNode != nullptr) {
+                    nextNode = currNode->getNext();
+                }
+            }
             if (nextNode != nullptr) {
-                if (nextNode->hasEtaToNext()) {
-                    cout << "Next stop: " << nextNode->getStopName()
-                         << " (stored ETA " << nextNode->getEtaToNextMinutes() << " min)" << endl;
+                string dirLabel = (bus->getDirection() == JourneyDirection::PICKUP || bus->getState() == BusState::RESTING) ? " [Pickup]" : " [Drop]";
+                int eta = (bus->getDirection() == JourneyDirection::PICKUP) ? nextNode->getEtaToNextMinutes() : (currNode != nullptr ? currNode->getEtaToNextMinutes() : -1);
+                if (eta > 0) {
+                    cout << "Next stop: " << nextNode->getStopName() << dirLabel
+                         << " (stored ETA " << eta << " min)" << endl;
                 } else {
-                    cout << "Next stop: " << nextNode->getStopName() << endl;
+                    cout << "Next stop: " << nextNode->getStopName() << dirLabel << endl;
                 }
             }
 

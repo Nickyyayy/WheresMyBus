@@ -16,7 +16,7 @@ private:
     void siftUp(int index) {
         while (index > 0) {
             int parentIndex = (index - 1) / 2;
-            // If parent has lower priority than current item swap them upwards
+            // If parent has lower priority than current item, swap them upwards
             if (isLower(data[parentIndex], data[index])) {
                 std::swap(data[parentIndex], data[index]);
                 index = parentIndex;
@@ -33,16 +33,16 @@ private:
             int rightChild = 2 * index + 2;
             int bestIndex = index;
 
-            // left child has higher priority than current best?
+            // Check if left child has higher priority than current best
             if (leftChild < n && isLower(data[bestIndex], data[leftChild])) {
                 bestIndex = leftChild;
             }
-            // right child has higher priority than current best?
+            // Check if right child has higher priority than current best
             if (rightChild < n && isLower(data[bestIndex], data[rightChild])) {
                 bestIndex = rightChild;
             }
 
-            // If a child outranks the current nod swap and continue sifting down
+            // If a child outranks the current node, swap and continue sifting down
             if (bestIndex != index) {
                 std::swap(data[index], data[bestIndex]);
                 index = bestIndex;
@@ -94,4 +94,4 @@ public:
     }
 };
 
-#endif 
+#endif // BINARY_HEAP_H

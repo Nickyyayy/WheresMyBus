@@ -39,8 +39,14 @@ StopColor BusStatusEngine::getStatusForBusAtStop(const Bus& bus, const string& s
     if (route == nullptr) {
         return StopColor::BLACK;
     }
-    // Using the LAST occurrence ensures return stops (e.g. Graphic Era) aren't prematurely marked 'missed'
-    RouteStopNode* node = route->findLastStopById(stopId);
+    RouteStopNode* node = nullptr;
+    if (bus.getDirection() == JourneyDirection::PICKUP) {
+        // On inbound pickup journey heading towards start stop (Graphic Era, pos 1)
+        node = route->findStopById(stopId);
+    } else {
+        // On outbound drop journey, using the last occurrence handles start/end loops
+        node = route->findLastStopById(stopId);
+    }
     if (node == nullptr) {
         return StopColor::BLACK;
     }
@@ -74,7 +80,7 @@ ActionResult BusStatusEngine::applyUpdate(Update& update) {
 
     // Capture bus's previous state
     update.setPrevious(bus->getCurrentStopId(), bus->getCurrentSequenceIndex(),
-                       bus->getHasFreeSeats(), bus->getState());
+                       bus->getHasFreeSeats(), bus->getState(), bus->getDirection());
 
     // Apply new values to bus
     if (update.getNewSequenceIndex() == 0) {
@@ -84,6 +90,7 @@ ActionResult BusStatusEngine::applyUpdate(Update& update) {
     }
     bus->setState(update.getNewState());
     bus->setSeatsAvailable(update.getNewSeatsAvailable());
+    bus->setDirection(update.getNewDirection());
 
     // Record into history stack
     updateHistory.push(update);
@@ -116,7 +123,7 @@ ActionResult BusStatusEngine::startShiftAtCollege(const Conductor& conductor) {
     }
 
     RouteStopNode* head = route->getHead();
-    Update u = conductor.createUpdate(head->getStopId(), 1, true, BusState::IN_SERVICE, false);
+    Update u = conductor.createUpdate(head->getStopId(), 1, true, BusState::IN_SERVICE, false, JourneyDirection::DROP);
     ActionResult res = submit(u);
     if (!res.ok) {
         return res;
@@ -138,13 +145,16 @@ ActionResult BusStatusEngine::startShiftAtRestStop(const Conductor& conductor) {
         return {false, "Route not found."};
     }
 
-    RouteStopNode* restNode = route->findStopById(route->getRestStopId());
+    RouteStopNode* restNode = route->findRestStop();
+    if (restNode == nullptr) {
+        restNode = route->findStopById(route->getRestStopId());
+    }
     if (restNode == nullptr) {
         return {false, "Rest stop not found on route."};
     }
 
     Update u = conductor.createUpdate(restNode->getStopId(), restNode->getSequenceIndex(),
-                                      true, BusState::RESTING, false);
+                                      true, BusState::RESTING, false, JourneyDirection::PICKUP);
     ActionResult res = submit(u);
     if (!res.ok) {
         return res;
@@ -170,44 +180,94 @@ ActionResult BusStatusEngine::reachedNextStop(const Conductor& conductor) {
         return {false, "Route not found."};
     }
 
-    int nextIndex = bus->getCurrentSequenceIndex() + 1;
-    RouteStopNode* nextNode = route->findStopByIndex(nextIndex);
-    if (nextNode == nullptr) {
-        return {false, "No next stop available on route."};
+    RouteStopNode* currNode = route->findStopByIndex(bus->getCurrentSequenceIndex());
+    if (currNode == nullptr) {
+        return {false, "Current stop not found on route."};
     }
 
-    // Check if next stop is the final position of the route
-    if (nextNode->getNext() == nullptr) {
-        // Trip is complete: bus returns to position 1 (head of route), state IN_SERVICE
-        RouteStopNode* headNode = route->getHead();
-        Update u = conductor.createUpdate(headNode->getStopId(), 1,
-                                          bus->getHasFreeSeats(), BusState::IN_SERVICE, true);
-        ActionResult res = submit(u);
-        if (!res.ok) {
-            return res;
+    // CASE 1: Bus is currently RESTING at the Rest Stop
+    // Moving next transitions from rest to the PICKUP journey heading back towards Graphic Era
+    if (bus->getState() == BusState::RESTING) {
+        RouteStopNode* nextNode = currNode->getPrev();
+        if (nextNode != nullptr) {
+            Update u = conductor.createUpdate(nextNode->getStopId(), nextNode->getSequenceIndex(),
+                                              bus->getHasFreeSeats(), BusState::IN_SERVICE, false, JourneyDirection::PICKUP);
+            ActionResult res = submit(u);
+            if (!res.ok) {
+                return res;
+            }
+            return {true, "Reached " + nextNode->getStopName() + " (position " +
+                           to_string(nextNode->getSequenceIndex()) + ")."};
+        } else {
+            // Rest stop was head: wrap to college
+            RouteStopNode* headNode = route->getHead();
+            Update u = conductor.createUpdate(headNode->getStopId(), 1,
+                                              bus->getHasFreeSeats(), BusState::IN_SERVICE, true, JourneyDirection::DROP);
+            ActionResult res = submit(u);
+            if (!res.ok) return res;
+            return {true, "Reached " + headNode->getStopName() + ". Trip complete! Bus is back at the start, ready for the next trip."};
         }
-        return {true, "Reached " + nextNode->getStopName() +
-                       ". Trip complete! Bus is back at the start, ready for the next trip."};
     }
 
-    // Next stop is an intermediate stop
-    bool isRest = (nextNode->getIsRestStop() || nextNode->getStopId() == route->getRestStopId());
-    BusState newState = isRest ? BusState::RESTING : BusState::IN_SERVICE;
+    // CASE 2: Bus is on OUTBOUND DROP JOURNEY (traveling forward via next pointer)
+    if (bus->getDirection() == JourneyDirection::DROP) {
+        RouteStopNode* nextNode = currNode->getNext();
+        if (nextNode == nullptr) {
+            return {false, "No next stop available on route."};
+        }
 
-    Update u = conductor.createUpdate(nextNode->getStopId(), nextIndex,
-                                      bus->getHasFreeSeats(), newState, false);
-    ActionResult res = submit(u);
-    if (!res.ok) {
-        return res;
+        bool isRest = (nextNode->getIsRestStop() || nextNode->getStopId() == route->getRestStopId());
+        if (isRest) {
+            // Reached Rest Stop: Drop journey complete! Bus is now resting, ready for subsequent pickup journey
+            Update u = conductor.createUpdate(nextNode->getStopId(), nextNode->getSequenceIndex(),
+                                              bus->getHasFreeSeats(), BusState::RESTING, false, JourneyDirection::PICKUP);
+            ActionResult res = submit(u);
+            if (!res.ok) {
+                return res;
+            }
+            return {true, "Reached " + nextNode->getStopName() + " (position " +
+                           to_string(nextNode->getSequenceIndex()) + "). Drop journey complete! Bus is now resting."};
+        } else {
+            // Intermediate stop along drop journey
+            Update u = conductor.createUpdate(nextNode->getStopId(), nextNode->getSequenceIndex(),
+                                              bus->getHasFreeSeats(), BusState::IN_SERVICE, false, JourneyDirection::DROP);
+            ActionResult res = submit(u);
+            if (!res.ok) {
+                return res;
+            }
+            return {true, "Reached " + nextNode->getStopName() + " (position " +
+                           to_string(nextNode->getSequenceIndex()) + ")."};
+        }
     }
 
-    if (isRest) {
-        return {true, "Reached " + nextNode->getStopName() + " (position " +
-                       to_string(nextIndex) + "). Bus is now resting."};
-    } else {
-        return {true, "Reached " + nextNode->getStopName() + " (position " +
-                       to_string(nextIndex) + ")."};
+    // CASE 3: Bus is on INBOUND PICKUP JOURNEY (traveling backward via prev pointer towards Graphic Era)
+    if (bus->getDirection() == JourneyDirection::PICKUP) {
+        RouteStopNode* nextNode = currNode->getPrev();
+        if (nextNode == nullptr || nextNode->getStopId() == route->getStartStopId() || nextNode == route->getHead()) {
+            // Reached Graphic Era: Pickup journey complete!
+            RouteStopNode* headNode = route->getHead();
+            Update u = conductor.createUpdate(headNode->getStopId(), 1,
+                                              bus->getHasFreeSeats(), BusState::IN_SERVICE, true, JourneyDirection::DROP);
+            ActionResult res = submit(u);
+            if (!res.ok) {
+                return res;
+            }
+            return {true, "Reached " + headNode->getStopName() +
+                           ". Trip complete! Bus is back at the start, ready for the next trip."};
+        } else {
+            // Intermediate stop along pickup journey
+            Update u = conductor.createUpdate(nextNode->getStopId(), nextNode->getSequenceIndex(),
+                                              bus->getHasFreeSeats(), BusState::IN_SERVICE, false, JourneyDirection::PICKUP);
+            ActionResult res = submit(u);
+            if (!res.ok) {
+                return res;
+            }
+            return {true, "Reached " + nextNode->getStopName() + " (position " +
+                           to_string(nextNode->getSequenceIndex()) + ")."};
+        }
     }
+
+    return {false, "Unknown journey state."};
 }
 
 ActionResult BusStatusEngine::setSeatsAvailable(const Conductor& conductor, bool seatsFree) {
@@ -223,7 +283,7 @@ ActionResult BusStatusEngine::setSeatsAvailable(const Conductor& conductor, bool
     }
 
     Update u = conductor.createUpdate(bus->getCurrentStopId(), bus->getCurrentSequenceIndex(),
-                                      seatsFree, bus->getState(), false);
+                                      seatsFree, bus->getState(), false, bus->getDirection());
     ActionResult res = submit(u);
     if (!res.ok) {
         return res;
@@ -242,7 +302,7 @@ ActionResult BusStatusEngine::setMaintenance(const Conductor& conductor, bool un
             return {false, "Bus is already under maintenance."};
         }
         Update u = conductor.createUpdate(bus->getCurrentStopId(), bus->getCurrentSequenceIndex(),
-                                          bus->getHasFreeSeats(), BusState::MAINTENANCE, false);
+                                          bus->getHasFreeSeats(), BusState::MAINTENANCE, false, bus->getDirection());
         ActionResult res = submit(u);
         if (!res.ok) {
             return res;
@@ -264,7 +324,7 @@ ActionResult BusStatusEngine::setMaintenance(const Conductor& conductor, bool un
         }
 
         Update u = conductor.createUpdate(bus->getCurrentStopId(), bus->getCurrentSequenceIndex(),
-                                          bus->getHasFreeSeats(), restoredState, false);
+                                          bus->getHasFreeSeats(), restoredState, false, bus->getDirection());
         ActionResult res = submit(u);
         if (!res.ok) {
             return res;
@@ -279,7 +339,7 @@ ActionResult BusStatusEngine::goOffDuty(const Conductor& conductor) {
         return {false, "Unknown bus " + conductor.getAssignedBusId()};
     }
 
-    Update u = conductor.createUpdate("", 0, true, BusState::NOT_AVAILABLE, false);
+    Update u = conductor.createUpdate("", 0, true, BusState::NOT_AVAILABLE, false, JourneyDirection::DROP);
     ActionResult res = submit(u);
     if (!res.ok) {
         return res;
@@ -330,6 +390,7 @@ ActionResult BusStatusEngine::undoLastUpdate(const Conductor& conductor) {
     }
     bus->setSeatsAvailable(undone.getPreviousSeatsAvailable());
     bus->setState(undone.getPreviousState());
+    bus->setDirection(undone.getPreviousDirection());
 
     return {true, "Undid the update from " + undone.getTimestamp() + "."};
 }
