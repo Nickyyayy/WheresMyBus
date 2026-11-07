@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 
+// Hand-written templated Queue implemented as a singly linked list
 template <typename T>
 class Queue {
 private:
@@ -79,4 +80,4 @@ public:
     }
 };
 
-#endif 
+#endif // QUEUE_H

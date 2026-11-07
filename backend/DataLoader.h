@@ -8,7 +8,7 @@
 
 using namespace std;
 
-// DataLoader fills domain registries with sql csv data
+// DataLoader handles querying the database and hydrating domain registries
 class DataLoader {
 private:
     Database& db;
@@ -22,4 +22,4 @@ public:
     string getLastError() const;
 };
 
-#endif 
+#endif // DATA_LOADER_H

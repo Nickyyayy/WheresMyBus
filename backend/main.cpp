@@ -131,31 +131,35 @@ int main() {
 
         // 8. Generate initial HTML dashboards
         HtmlGenerator html(OUTPUT_DIR, CSS_HREF);
-        if (!html.writeStudentPage(engine) || !html.writeHodPage(engine)) {
+        bool ok0 = html.writeHomePage(engine);
+        bool ok1 = html.writeStudentPage(engine);
+        bool ok2 = html.writeConductorPage(engine);
+        bool ok3 = html.writeHodPage(engine);
+        if (!ok0 || !ok1 || !ok2 || !ok3) {
             cout << "Warning: Failed to generate initial web pages in output directory." << endl;
         }
 
-        string absStudentPath = html.getStudentPagePath();
+        string absHomePath = html.getHomePagePath();
 #if HAS_STD_FILESYSTEM
         try {
-            absStudentPath = fs::absolute(html.getStudentPagePath()).string();
+            absHomePath = fs::absolute(html.getHomePagePath()).string();
         } catch (...) {}
 #else
 #ifdef _WIN32
         char fullPathBuf[MAX_PATH];
-        DWORD len = GetFullPathNameA(html.getStudentPagePath().c_str(), MAX_PATH, fullPathBuf, nullptr);
+        DWORD len = GetFullPathNameA(html.getHomePagePath().c_str(), MAX_PATH, fullPathBuf, nullptr);
         if (len > 0) {
-            absStudentPath = string(fullPathBuf);
+            absHomePath = string(fullPathBuf);
         }
 #endif
 #endif
-        cout << "Student page: " << absStudentPath << endl;
+        cout << "Portal Homepage: " << absHomePath << endl;
 
         // 9. Open browser on Windows if configured
 #ifdef _WIN32
         string openBrowser = config.get("open_browser", "yes");
         if (openBrowser != "no") {
-            string openCmd = "start \"\" \"" + absStudentPath + "\"";
+            string openCmd = "start \"\" \"" + absHomePath + "\"";
             system(openCmd.c_str());
         }
 #endif

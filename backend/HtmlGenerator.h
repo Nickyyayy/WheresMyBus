@@ -14,15 +14,20 @@ private:
 
     static string escapeHtml(const string& text);
     static string colorToClass(StopColor color);
+    static string renderNavBar(const string& activePage);
     bool atomicWrite(const string& targetPath, const string& content) const;
 
 public:
     HtmlGenerator(string outputDir, string cssHref);
 
+    bool writeHomePage(const BusStatusEngine& engine) const;
     bool writeStudentPage(const BusStatusEngine& engine) const;
+    bool writeConductorPage(const BusStatusEngine& engine) const;
     bool writeHodPage(const BusStatusEngine& engine) const;
 
+    string getHomePagePath() const;
     string getStudentPagePath() const;
+    string getConductorPagePath() const;
     string getHodPagePath() const;
 };
 
