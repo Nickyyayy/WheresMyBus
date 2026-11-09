@@ -8,6 +8,7 @@
 #include "BusStatusEngine.h"
 #include "HtmlGenerator.h"
 #include "ConsoleMenu.h"
+#include "WebBridge.h"
 
 #include <iostream>
 #include <string>
@@ -40,7 +41,7 @@ void waitForEnter() {
     getline(cin, dummy);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     try {
         cout << "Starting Where's My Bus..." << endl;
 
@@ -164,9 +165,15 @@ int main() {
         }
 #endif
 
-        // 10. Run terminal menu
-        ConsoleMenu menu(engine, html);
-        menu.run();
+        // 10. Start Web Bridge
+        if (argc > 1 && string(argv[1]) == "--cli") {
+            cout << "Running console menu..." << endl;
+            ConsoleMenu menu(engine, html);
+            menu.run();
+        } else {
+            WebBridge bridge(engine, html);
+            bridge.run();
+        }
 
         return 0;
     } catch (const exception& e) {

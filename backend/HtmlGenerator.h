@@ -24,11 +24,13 @@ public:
     bool writeStudentPage(const BusStatusEngine& engine) const;
     bool writeConductorPage(const BusStatusEngine& engine) const;
     bool writeHodPage(const BusStatusEngine& engine) const;
+    bool writeStateJson(const BusStatusEngine& engine, const string& lastMessage = "") const;
 
     string getHomePagePath() const;
     string getStudentPagePath() const;
     string getConductorPagePath() const;
     string getHodPagePath() const;
+    string getStateJsonPath() const;
 };
 
 #endif // HTML_GENERATOR_H

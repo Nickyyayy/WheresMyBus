@@ -1,56 +1,28 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+#include <queue>
 #include <stdexcept>
 
-// Hand-written templated Queue implemented as a singly linked list
+// STL-backed Queue adapter using std::queue
 template <typename T>
 class Queue {
 private:
-    struct Node {
-        T data;
-        Node* next;
-        Node(const T& value) : data(value), next(nullptr) {}
-    };
-
-    Node* head;
-    Node* tail;
-    int count;
+    std::queue<T> impl;
 
 public:
-    Queue() : head(nullptr), tail(nullptr), count(0) {}
-
-    ~Queue() {
-        clear();
-    }
-
-    Queue(const Queue&) = delete;
-    Queue& operator=(const Queue&) = delete;
+    Queue() = default;
 
     void push(const T& value) {
-        Node* newNode = new Node(value);
-        if (tail == nullptr) {
-            head = newNode;
-            tail = newNode;
-        } else {
-            tail->next = newNode;
-            tail = newNode;
-        }
-        count++;
+        impl.push(value);
     }
 
     T pop() {
         if (isEmpty()) {
             throw std::underflow_error("Queue is empty");
         }
-        Node* oldHead = head;
-        T result = oldHead->data;
-        head = head->next;
-        if (head == nullptr) {
-            tail = nullptr;
-        }
-        delete oldHead;
-        count--;
+        T result = impl.front();
+        impl.pop();
         return result;
     }
 
@@ -58,25 +30,24 @@ public:
         if (isEmpty()) {
             throw std::underflow_error("Queue is empty");
         }
-        return head->data;
+        return impl.front();
     }
 
     bool isEmpty() const {
-        return head == nullptr;
+        return impl.empty();
+    }
+
+    bool empty() const {
+        return impl.empty();
     }
 
     int size() const {
-        return count;
+        return static_cast<int>(impl.size());
     }
 
     void clear() {
-        while (head != nullptr) {
-            Node* nextNode = head->next;
-            delete head;
-            head = nextNode;
-        }
-        tail = nullptr;
-        count = 0;
+        std::queue<T> emptyQueue;
+        std::swap(impl, emptyQueue);
     }
 };
 

@@ -90,6 +90,12 @@ string HtmlGenerator::getHodPagePath() const {
     return outputDir + "/hod.html";
 }
 
+string HtmlGenerator::getStateJsonPath() const {
+    return outputDir + "/state.json";
+}
+
+static unsigned long long g_stateRevision = 0;
+
 string HtmlGenerator::renderNavBar(const string& activePage) {
     ostringstream nav;
     nav << "<nav class=\"nav-bar\">\n";
@@ -100,8 +106,56 @@ string HtmlGenerator::renderNavBar(const string& activePage) {
     nav << "    <a href=\"conductor.html\" class=\"nav-link" << (activePage == "conductor" ? " active" : "") << "\">Conductor Portal</a>\n";
     nav << "    <a href=\"hod.html\" class=\"nav-link" << (activePage == "hod" ? " active" : "") << "\">HOD Report</a>\n";
     nav << "  </div>\n";
+    nav << "  <span class=\"live-indicator\" title=\"Connected to live real-time engine\"><span class=\"live-dot\"></span> Live</span>\n";
     nav << "</nav>\n";
     return nav.str();
+}
+
+bool HtmlGenerator::writeStateJson(const BusStatusEngine& engine, const string& lastMessage) const {
+    g_stateRevision++;
+    const BusRegistry& busRegistry = engine.getBusRegistry();
+    vector<Bus*> allBuses = sortBusesForDisplay(busRegistry.getAllBuses());
+
+    int inService = 0, resting = 0, maint = 0, notAvail = 0;
+    for (const Bus* b : allBuses) {
+        if (b->getState() == BusState::IN_SERVICE) inService++;
+        else if (b->getState() == BusState::RESTING) resting++;
+        else if (b->getState() == BusState::MAINTENANCE) maint++;
+        else notAvail++;
+    }
+
+    ostringstream json;
+    json << "{\n";
+    json << "  \"revision\": " << g_stateRevision << ",\n";
+    json << "  \"timestamp\": \"" << escapeHtml(Update::currentTimestamp()) << "\",\n";
+    json << "  \"lastMessage\": \"" << escapeHtml(lastMessage) << "\",\n";
+    json << "  \"fleet\": {\n";
+    json << "    \"total\": " << allBuses.size() << ",\n";
+    json << "    \"inService\": " << inService << ",\n";
+    json << "    \"resting\": " << resting << ",\n";
+    json << "    \"maintenance\": " << maint << ",\n";
+    json << "    \"notAvailable\": " << notAvail << "\n";
+    json << "  },\n";
+    json << "  \"buses\": [\n";
+
+    for (size_t i = 0; i < allBuses.size(); i++) {
+        const Bus* b = allBuses[i];
+        string curStop = engine.getCurrentStopName(*b);
+        json << "    {\n";
+        json << "      \"id\": \"" << escapeHtml(b->getBusId()) << "\",\n";
+        json << "      \"routeId\": \"" << escapeHtml(b->getRouteId()) << "\",\n";
+        json << "      \"state\": \"" << escapeHtml(busStateToString(b->getState())) << "\",\n";
+        json << "      \"seq\": " << b->getCurrentSequenceIndex() << ",\n";
+        json << "      \"currentStop\": \"" << escapeHtml(curStop) << "\",\n";
+        json << "      \"seatsFree\": " << (b->getHasFreeSeats() ? "true" : "false") << ",\n";
+        json << "      \"direction\": \"" << (b->isPickupJourney() ? "PICKUP" : "DROP") << "\"\n";
+        json << "    }" << (i + 1 < allBuses.size() ? "," : "") << "\n";
+    }
+
+    json << "  ]\n";
+    json << "}\n";
+
+    return atomicWrite(getStateJsonPath(), json.str());
 }
 
 bool HtmlGenerator::writeHomePage(const BusStatusEngine& engine) const {
@@ -122,6 +176,9 @@ bool HtmlGenerator::writeHomePage(const BusStatusEngine& engine) const {
     html << "<html lang=\"en\">\n<head>\n";
     html << "<meta charset=\"UTF-8\">\n";
     html << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+    html << "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">\n";
+    html << "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n";
+    html << "<meta http-equiv=\"Expires\" content=\"0\">\n";
     html << "<title>Where's My Bus - Transit Portal</title>\n";
     html << "<link rel=\"stylesheet\" href=\"" << escapeHtml(cssHref) << "\">\n";
     html << "<noscript><meta http-equiv=\"refresh\" content=\"15\"></noscript>\n";
@@ -170,10 +227,25 @@ bool HtmlGenerator::writeHomePage(const BusStatusEngine& engine) const {
 
     // Notice box
     html << "<div class=\"help-box\">\n";
-    html << "  <strong>System Architecture:</strong> Powered by a deterministic C++ core featuring a Doubly Linked List route backbone, Queue buffer, Memento undo Stack, and Binary Max-Heap priority sort. All web pages refresh dynamically every 15 seconds.\n";
+    html << "  <strong>Notice:</strong> Pages automatically refresh when new status updates are submitted.\n";
     html << "</div>\n";
 
     html << "</div>\n";
+    html << "<script>\n";
+    html << "(function() {\n";
+    html << "  var currentRev = null;\n";
+    html << "  function checkSync() {\n";
+    html << "    fetch('state.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){\n";
+    html << "      if (d && typeof d.revision !== 'undefined') {\n";
+    html << "        if (currentRev === null) currentRev = d.revision;\n";
+    html << "        else if (d.revision !== currentRev) location.reload();\n";
+    html << "      }\n";
+    html << "    }).catch(function(){});\n";
+    html << "  }\n";
+    html << "  setInterval(checkSync, 1500);\n";
+    html << "  setTimeout(function(){ location.reload(); }, 15000);\n";
+    html << "})();\n";
+    html << "</script>\n";
     html << "</body>\n</html>\n";
 
     return atomicWrite(getHomePagePath(), html.str());
@@ -191,6 +263,9 @@ bool HtmlGenerator::writeStudentPage(const BusStatusEngine& engine) const {
     html << "<html lang=\"en\">\n<head>\n";
     html << "<meta charset=\"UTF-8\">\n";
     html << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+    html << "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">\n";
+    html << "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n";
+    html << "<meta http-equiv=\"Expires\" content=\"0\">\n";
     html << "<title>Where's My Bus - Student Dashboard</title>\n";
     html << "<link rel=\"stylesheet\" href=\"" << escapeHtml(cssHref) << "\">\n";
     html << "<noscript><meta http-equiv=\"refresh\" content=\"15\"></noscript>\n";
@@ -403,6 +478,20 @@ bool HtmlGenerator::writeStudentPage(const BusStatusEngine& engine) const {
     html << "  }\n";
     html << "  window.addEventListener('load', restoreSelection);\n";
     html << "  restoreSelection();\n";
+    html << "  var currentRev = null;\n";
+    html << "  var isFocused = false;\n";
+    html << "  select.addEventListener('focus', function() { isFocused = true; stopReloadTimer(); });\n";
+    html << "  select.addEventListener('blur', function() { isFocused = false; startReloadTimer(); });\n";
+    html << "  function checkRealtime() {\n";
+    html << "    if (isFocused) return;\n";
+    html << "    fetch('state.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){\n";
+    html << "      if (d && typeof d.revision !== 'undefined') {\n";
+    html << "        if (currentRev === null) currentRev = d.revision;\n";
+    html << "        else if (d.revision !== currentRev) location.reload();\n";
+    html << "      }\n";
+    html << "    }).catch(function(){});\n";
+    html << "  }\n";
+    html << "  setInterval(checkRealtime, 1500);\n";
     html << "})();\n";
     html << "</script>\n";
 
@@ -445,6 +534,9 @@ bool HtmlGenerator::writeHodPage(const BusStatusEngine& engine) const {
     html << "<html lang=\"en\">\n<head>\n";
     html << "<meta charset=\"UTF-8\">\n";
     html << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+    html << "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">\n";
+    html << "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n";
+    html << "<meta http-equiv=\"Expires\" content=\"0\">\n";
     html << "<title>Department Head Report - Where's My Bus</title>\n";
     html << "<link rel=\"stylesheet\" href=\"" << escapeHtml(cssHref) << "\">\n";
     html << "<noscript><meta http-equiv=\"refresh\" content=\"15\"></noscript>\n";
@@ -563,6 +655,20 @@ bool HtmlGenerator::writeHodPage(const BusStatusEngine& engine) const {
     html << "<p class=\"info-note\">The log lives in memory and restarts empty each run (the database has no history table). No delay statistics are required.</p>\n";
 
     html << "</div>\n"; // container
+    html << "<script>\n";
+    html << "(function() {\n";
+    html << "  var currentRev = null;\n";
+    html << "  function checkRealtime() {\n";
+    html << "    fetch('state.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){\n";
+    html << "      if (d && typeof d.revision !== 'undefined') {\n";
+    html << "        if (currentRev === null) currentRev = d.revision;\n";
+    html << "        else if (d.revision !== currentRev) location.reload();\n";
+    html << "      }\n";
+    html << "    }).catch(function(){});\n";
+    html << "  }\n";
+    html << "  setInterval(checkRealtime, 2000);\n";
+    html << "})();\n";
+    html << "</script>\n";
     html << "</body>\n</html>\n";
 
     return atomicWrite(getHodPagePath(), html.str());
@@ -578,6 +684,9 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
     html << "<html lang=\"en\">\n<head>\n";
     html << "<meta charset=\"UTF-8\">\n";
     html << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
+    html << "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">\n";
+    html << "<meta http-equiv=\"Pragma\" content=\"no-cache\">\n";
+    html << "<meta http-equiv=\"Expires\" content=\"0\">\n";
     html << "<title>Conductor Portal - Where's My Bus</title>\n";
     html << "<link rel=\"stylesheet\" href=\"" << escapeHtml(cssHref) << "\">\n";
     html << "<noscript><meta http-equiv=\"refresh\" content=\"15\"></noscript>\n";
@@ -599,6 +708,13 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
              << escapeHtml(b->getBusId()) << " (" << escapeHtml(b->getRouteId()) << ")</option>\n";
     }
     html << "  </select>\n";
+    html << "</div>\n";
+
+    // Empty-state prompt displayed when no bus is selected yet
+    html << "<div id=\"noBusPrompt\" class=\"conductor-box\" style=\"text-align:center;padding:2.5rem 1rem;color:var(--text-muted);\">\n";
+    html << "  <div style=\"font-size:2.5rem;margin-bottom:0.5rem;\">&#128652;</div>\n";
+    html << "  <h3 style=\"margin-bottom:0.5rem;color:var(--text-main);\">No Bus Selected</h3>\n";
+    html << "  <p>Please select your assigned bus from the dropdown above to view live route progress and access conductor controls.</p>\n";
     html << "</div>\n";
 
     // Per-bus panels (hidden until selected)
@@ -684,7 +800,7 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
             }
         } else if (b->getState() == BusState::NOT_AVAILABLE) {
             html << "        <div class=\"stop-indicator-value\">Ready to Start</div>\n";
-            html << "        <div class=\"stop-indicator-sub\">Select Option 0 or 1 in terminal</div>\n";
+            html << "        <div class=\"stop-indicator-sub\">Click 'Start Shift' below</div>\n";
         } else {
             html << "        <div class=\"stop-indicator-value\">Final Destination</div>\n";
             html << "        <div class=\"stop-indicator-sub\">Trip complete on next advance</div>\n";
@@ -693,11 +809,97 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
 
         html << "    </div>\n"; // stop-indicators
 
-        // Operational help box
-        html << "    <div class=\"help-box\">\n";
-        html << "      <strong>Conductor Quick Actions:</strong> Open the <code>wheresmybus.exe</code> console window &rarr; Enter <strong>2 (Conductor)</strong> &rarr; Bus <strong>"
-             << escapeHtml(b->getBusId()) << "</strong>. Use Option 1 to advance stops, Option 2 to toggle seats full/free, Option 3 to report maintenance, and Option 4 to undo mistakes. Updates appear here and on student phones automatically.\n";
-        html << "    </div>\n";
+        // Interactive Web Conductor Controls
+        html << "    <div class=\"conductor-controls\">\n";
+        html << "      <div class=\"controls-header\">\n";
+        html << "        <span class=\"controls-title\">Live Conductor Controls</span>\n";
+        html << "        <span class=\"action-spinner\" id=\"spinner-" << escapeHtml(b->getBusId()) << "\" style=\"display:none;\">&#8987; Updating...</span>\n";
+        html << "      </div>\n";
+
+        // Toast notification banner for action feedback
+        html << "      <div class=\"action-feedback\" id=\"feedback-" << escapeHtml(b->getBusId()) << "\" style=\"display:none;\"></div>\n";
+
+        html << "      <div class=\"control-btn-grid\">\n";
+
+        // 1. Advance to Next Stop
+        if (b->getState() == BusState::IN_SERVICE) {
+            string nextName = (nextNode != nullptr ? nextNode->getStopName() : "Final Stop (Complete Trip)");
+            string dirTag = b->isPickupJourney() ? " [Pickup]" : " [Drop]";
+            html << "        <button class=\"btn btn-primary btn-advance\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'reachedNextStop')\">\n";
+            html << "          <span class=\"btn-icon\">&#128652;</span> Reached Next Stop &rarr; <strong>" << escapeHtml(nextName) << dirTag << "</strong>\n";
+            html << "        </button>\n";
+        } else if (b->getState() == BusState::RESTING) {
+            string nextName = (nextNode != nullptr ? nextNode->getStopName() : "Graphic Era");
+            html << "        <button class=\"btn btn-primary btn-advance\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'reachedNextStop')\">\n";
+            html << "          <span class=\"btn-icon\">&#128652;</span> Resume Pickup Journey &rarr; <strong>" << escapeHtml(nextName) << "</strong>\n";
+            html << "        </button>\n";
+        } else if (b->getState() == BusState::MAINTENANCE) {
+            html << "        <button class=\"btn btn-disabled\" disabled title=\"Bus is under maintenance. Mark it fixed first.\">\n";
+            html << "          <span class=\"btn-icon\">&#9888;</span> Reached Next Stop (Bus in Maintenance)\n";
+            html << "        </button>\n";
+        } else {
+            html << "        <button class=\"btn btn-disabled\" disabled title=\"Start your shift below first.\">\n";
+            html << "          <span class=\"btn-icon\">&#128652;</span> Reached Next Stop (Shift Not Started)\n";
+            html << "        </button>\n";
+        }
+
+        // 2. Start Shift Options
+        string headName = (route != nullptr && route->getHead() != nullptr) ? route->getHead()->getStopName() : "Start Terminal";
+        RouteStopNode* restNode = (route != nullptr) ? (route->findRestStop() ? route->findRestStop() : route->findStopById(route->getRestStopId())) : nullptr;
+        string restName = (restNode != nullptr) ? restNode->getStopName() : "Rest Stop";
+
+        if (b->getState() == BusState::NOT_AVAILABLE) {
+            html << "        <button class=\"btn btn-secondary btn-start\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'startShiftCollege')\">\n";
+            html << "          <span class=\"btn-icon\">&#127891;</span> Start Shift at " << escapeHtml(headName) << " (Pos 1)\n";
+            html << "        </button>\n";
+
+            html << "        <button class=\"btn btn-secondary btn-start\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'startShiftRest')\">\n";
+            html << "          <span class=\"btn-icon\">&#9749;</span> Start Shift at " << escapeHtml(restName) << " (Rest Stop)\n";
+            html << "        </button>\n";
+        }
+
+        // 3. Seats Toggle
+        if (b->getState() == BusState::IN_SERVICE) {
+            if (b->getHasFreeSeats()) {
+                html << "        <button class=\"btn btn-seats-full\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'toggleSeats')\">\n";
+                html << "          <span class=\"btn-icon\">&#128186;</span> Seats: Mark Bus FULL\n";
+                html << "        </button>\n";
+            } else {
+                html << "        <button class=\"btn btn-seats-free\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'toggleSeats')\">\n";
+                html << "          <span class=\"btn-icon\">&#128186;</span> Seats: Mark Seats FREE\n";
+                html << "        </button>\n";
+            }
+        } else {
+            html << "        <button class=\"btn btn-disabled\" disabled title=\"Seats can only be adjusted while in service.\">\n";
+            html << "          <span class=\"btn-icon\">&#128186;</span> Toggle Seats (In-Service Only)\n";
+            html << "        </button>\n";
+        }
+
+        // 4. Maintenance Toggle
+        if (b->getState() == BusState::MAINTENANCE) {
+            html << "        <button class=\"btn btn-success\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'setMaintenance')\">\n";
+            html << "          <span class=\"btn-icon\">&#9881;</span> Maintenance: Mark FIXED / Back in Service\n";
+            html << "        </button>\n";
+        } else {
+            html << "        <button class=\"btn btn-warning\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'setMaintenance')\">\n";
+            html << "          <span class=\"btn-icon\">&#9888;</span> Report Problem / Maintenance\n";
+            html << "        </button>\n";
+        }
+
+        // 5. Undo Action
+        html << "        <button class=\"btn btn-danger\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'undo')\" title=\"Undo last update for this bus\">\n";
+        html << "          <span class=\"btn-icon\">&#8634;</span> Undo Last Action\n";
+        html << "        </button>\n";
+
+        // 6. End Shift
+        if (b->getState() != BusState::NOT_AVAILABLE) {
+            html << "        <button class=\"btn btn-dark\" onclick=\"sendAction('" << escapeHtml(b->getBusId()) << "', 'endShift')\" title=\"Set bus to not available\">\n";
+            html << "          <span class=\"btn-icon\">&#9209;</span> End Shift (Go Off Duty)\n";
+            html << "        </button>\n";
+        }
+
+        html << "      </div>\n"; // control-btn-grid
+        html << "    </div>\n";   // conductor-controls
 
         html << "  </div>\n"; // conductor-box
         html << "</div>\n";   // conductor-panel
@@ -728,8 +930,66 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
     html << "  </table>\n";
     html << "</div>\n";
 
-    // Conductor Javascript (15s auto-reload + dropdown selection persistence)
+    // Conductor Javascript (real-time sync, async API actions, dropdown selection persistence)
     html << "<script>\n";
+    html << "function sendAction(busId, action) {\n";
+    html << "  var feedback = document.getElementById('feedback-' + busId);\n";
+    html << "  if (location.protocol === 'file:') {\n";
+    html << "    if (feedback) {\n";
+    html << "      feedback.className = 'action-feedback error';\n";
+    html << "      feedback.innerHTML = '&#9888; <strong>Server Required:</strong> You are viewing this page directly as a local file (file://). Please start <code>start_server.bat</code> and open <a href=\"http://localhost:8080/output/conductor.html\">http://localhost:8080</a> in your browser to use live conductor buttons.';\n";
+    html << "      feedback.style.display = 'block';\n";
+    html << "    }\n";
+    html << "    return;\n";
+    html << "  }\n";
+    html << "  var spinner = document.getElementById('spinner-' + busId);\n";
+    html << "  if (spinner) spinner.style.display = 'inline-block';\n";
+    html << "  var panel = document.querySelector('.conductor-panel[data-bus=\"' + busId + '\"]');\n";
+    html << "  var buttons = panel ? panel.querySelectorAll('button') : [];\n";
+    html << "  buttons.forEach(function(b) { b.disabled = true; });\n";
+    html << "  fetch('/api/action', {\n";
+    html << "    method: 'POST',\n";
+    html << "    headers: { 'Content-Type': 'application/json' },\n";
+    html << "    body: JSON.stringify({ busId: busId, action: action })\n";
+    html << "  })\n";
+    html << "  .then(function(res) {\n";
+    html << "    return res.json().then(function(data) {\n";
+    html << "      if (!res.ok) throw new Error(data.message || 'Server returned error ' + res.status);\n";
+    html << "      return data;\n";
+    html << "    });\n";
+    html << "  })\n";
+    html << "  .then(function(data) {\n";
+    html << "    if (data.ok) {\n";
+    html << "      try {\n";
+    html << "        localStorage.setItem('conductorAlert', JSON.stringify({\n";
+    html << "          busId: busId,\n";
+    html << "          type: 'success',\n";
+    html << "          message: data.message,\n";
+    html << "          time: Date.now()\n";
+    html << "        }));\n";
+    html << "      } catch(e){}\n";
+    html << "      location.reload();\n";
+    html << "    } else {\n";
+    html << "      if (spinner) spinner.style.display = 'none';\n";
+    html << "      buttons.forEach(function(b) { b.disabled = false; });\n";
+    html << "      if (feedback) {\n";
+    html << "        feedback.className = 'action-feedback error';\n";
+    html << "        feedback.innerHTML = '&#10060; <strong>Action Rejected:</strong> ' + (data.message || 'Error occurred');\n";
+    html << "        feedback.style.display = 'block';\n";
+    html << "      }\n";
+    html << "    }\n";
+    html << "  })\n";
+    html << "  .catch(function(err) {\n";
+    html << "    if (spinner) spinner.style.display = 'none';\n";
+    html << "    buttons.forEach(function(b) { b.disabled = false; });\n";
+    html << "    if (feedback) {\n";
+    html << "      feedback.className = 'action-feedback error';\n";
+    html << "      feedback.innerHTML = '&#9888; <strong>Connection Error:</strong> ' + err.message;\n";
+    html << "      feedback.style.display = 'block';\n";
+    html << "    }\n";
+    html << "  });\n";
+    html << "}\n\n";
+
     html << "(function() {\n";
     html << "  var reloadTimer = null;\n";
     html << "  function startReloadTimer() {\n";
@@ -743,14 +1003,17 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
     html << "  var select = document.getElementById('conductorBusSelect');\n";
     html << "  var panels = document.querySelectorAll('.conductor-panel');\n";
     html << "  function showBus(id) {\n";
+    html << "    var prompt = document.getElementById('noBusPrompt');\n";
+    html << "    if (prompt) prompt.style.display = id ? 'none' : 'block';\n";
     html << "    panels.forEach(function(p) {\n";
     html << "      p.hidden = (p.getAttribute('data-bus') !== id);\n";
     html << "    });\n";
     html << "    select.value = id;\n";
     html << "    try { localStorage.setItem('selectedConductorBus', id); } catch(e){}\n";
     html << "  }\n";
-    html << "  select.addEventListener('focus', stopReloadTimer);\n";
-    html << "  select.addEventListener('blur', startReloadTimer);\n";
+    html << "  var isInteracting = false;\n";
+    html << "  select.addEventListener('focus', function() { isInteracting = true; stopReloadTimer(); });\n";
+    html << "  select.addEventListener('blur', function() { isInteracting = false; startReloadTimer(); });\n";
     html << "  select.addEventListener('change', function() {\n";
     html << "    var val = select.value;\n";
     html << "    if (val) {\n";
@@ -770,7 +1033,36 @@ bool HtmlGenerator::writeConductorPage(const BusStatusEngine& engine) const {
     html << "    if (id) { showBus(id); }\n";
     html << "  }\n";
     html << "  window.addEventListener('load', restoreSelection);\n";
-    html << "  restoreSelection();\n";
+    html << "  restoreSelection();\n\n";
+
+    // Restore saved alert toast
+    html << "  try {\n";
+    html << "    var saved = JSON.parse(localStorage.getItem('conductorAlert'));\n";
+    html << "    if (saved && (Date.now() - saved.time < 12000)) {\n";
+    html << "      var fb = document.getElementById('feedback-' + saved.busId);\n";
+    html << "      if (fb) {\n";
+    html << "        fb.className = 'action-feedback ' + saved.type;\n";
+    html << "        fb.innerHTML = (saved.type === 'success' ? '&#9989; <strong>Success:</strong> ' : '&#10060; ') + saved.message;\n";
+    html << "        fb.style.display = 'block';\n";
+    html << "        setTimeout(function() { fb.style.display = 'none'; }, 6000);\n";
+    html << "      }\n";
+    html << "      localStorage.removeItem('conductorAlert');\n";
+    html << "    }\n";
+    html << "  } catch(e){}\n\n";
+
+    // Real-time synchronization loop
+    html << "  var currentRev = null;\n";
+    html << "  function checkRealtime() {\n";
+    html << "    if (isInteracting) return;\n";
+    html << "    fetch('state.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){\n";
+    html << "      if (d && typeof d.revision !== 'undefined') {\n";
+    html << "        if (currentRev === null) currentRev = d.revision;\n";
+    html << "        else if (d.revision !== currentRev) location.reload();\n";
+    html << "      }\n";
+    html << "    }).catch(function(){});\n";
+    html << "  }\n";
+    html << "  setInterval(checkRealtime, 1500);\n";
+
     html << "})();\n";
     html << "</script>\n";
 

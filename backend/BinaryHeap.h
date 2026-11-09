@@ -1,76 +1,32 @@
 #ifndef BINARY_HEAP_H
 #define BINARY_HEAP_H
 
+#include <queue>
 #include <vector>
-#include <stdexcept>
-#include <utility>
 #include <functional>
+#include <stdexcept>
 
-
+// STL-backed Binary Heap adapter using std::priority_queue
 template <typename T, typename LowerPriority = std::less<T>>
 class BinaryHeap {
 private:
-    std::vector<T> data;
     LowerPriority isLower;
-
-    void siftUp(int index) {
-        while (index > 0) {
-            int parentIndex = (index - 1) / 2;
-            // If parent has lower priority than current item, swap them upwards
-            if (isLower(data[parentIndex], data[index])) {
-                std::swap(data[parentIndex], data[index]);
-                index = parentIndex;
-            } else {
-                break;
-            }
-        }
-    }
-
-    void siftDown(int index) {
-        int n = static_cast<int>(data.size());
-        while (true) {
-            int leftChild = 2 * index + 1;
-            int rightChild = 2 * index + 2;
-            int bestIndex = index;
-
-            // Check if left child has higher priority than current best
-            if (leftChild < n && isLower(data[bestIndex], data[leftChild])) {
-                bestIndex = leftChild;
-            }
-            // Check if right child has higher priority than current best
-            if (rightChild < n && isLower(data[bestIndex], data[rightChild])) {
-                bestIndex = rightChild;
-            }
-
-            // If a child outranks the current node, swap and continue sifting down
-            if (bestIndex != index) {
-                std::swap(data[index], data[bestIndex]);
-                index = bestIndex;
-            } else {
-                break;
-            }
-        }
-    }
+    std::priority_queue<T, std::vector<T>, LowerPriority> pq;
 
 public:
-    BinaryHeap() : isLower(LowerPriority()) {}
-    explicit BinaryHeap(LowerPriority comp) : isLower(comp) {}
+    BinaryHeap() : isLower(LowerPriority()), pq(LowerPriority()) {}
+    explicit BinaryHeap(LowerPriority comp) : isLower(comp), pq(comp) {}
 
     void push(const T& value) {
-        data.push_back(value);
-        siftUp(static_cast<int>(data.size()) - 1);
+        pq.push(value);
     }
 
     T pop() {
         if (isEmpty()) {
             throw std::underflow_error("Heap is empty");
         }
-        T rootValue = data[0];
-        data[0] = data.back();
-        data.pop_back();
-        if (!data.empty()) {
-            siftDown(0);
-        }
+        T rootValue = pq.top();
+        pq.pop();
         return rootValue;
     }
 
@@ -78,19 +34,23 @@ public:
         if (isEmpty()) {
             throw std::underflow_error("Heap is empty");
         }
-        return data[0];
+        return pq.top();
     }
 
     bool isEmpty() const {
-        return data.empty();
+        return pq.empty();
+    }
+
+    bool empty() const {
+        return pq.empty();
     }
 
     int size() const {
-        return static_cast<int>(data.size());
+        return static_cast<int>(pq.size());
     }
 
     void clear() {
-        data.clear();
+        pq = std::priority_queue<T, std::vector<T>, LowerPriority>(isLower);
     }
 };
 

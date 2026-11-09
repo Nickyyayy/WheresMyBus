@@ -1,46 +1,29 @@
 #ifndef STACK_H
 #define STACK_H
 
-#include <stdexcept>
+#include <stack>
 #include <vector>
+#include <stdexcept>
 
-// Hand-written templated Stack implemented as a linked list
+// STL-backed Stack adapter using std::stack
 template <typename T>
 class Stack {
 private:
-    struct Node {
-        T data;
-        Node* next;
-        Node(const T& value, Node* nextNode) : data(value), next(nextNode) {}
-    };
-
-    Node* topNode;
-    int count;
+    std::stack<T> impl;
 
 public:
-    Stack() : topNode(nullptr), count(0) {}
-
-    ~Stack() {
-        clear();
-    }
-
-    Stack(const Stack&) = delete;
-    Stack& operator=(const Stack&) = delete;
+    Stack() = default;
 
     void push(const T& value) {
-        topNode = new Node(value, topNode);
-        count++;
+        impl.push(value);
     }
 
     T pop() {
         if (isEmpty()) {
             throw std::underflow_error("Stack is empty");
         }
-        Node* oldTop = topNode;
-        T result = oldTop->data;
-        topNode = topNode->next;
-        delete oldTop;
-        count--;
+        T result = impl.top();
+        impl.pop();
         return result;
     }
 
@@ -48,35 +31,35 @@ public:
         if (isEmpty()) {
             throw std::underflow_error("Stack is empty");
         }
-        return topNode->data;
+        return impl.top();
     }
 
     bool isEmpty() const {
-        return topNode == nullptr;
+        return impl.empty();
+    }
+
+    bool empty() const {
+        return impl.empty();
     }
 
     int size() const {
-        return count;
+        return static_cast<int>(impl.size());
     }
 
     void clear() {
-        while (topNode != nullptr) {
-            Node* nextNode = topNode->next;
-            delete topNode;
-            topNode = nextNode;
+        while (!impl.empty()) {
+            impl.pop();
         }
-        count = 0;
     }
 
     // Returns a copy of the elements from top to bottom (newest first)
-    // Allows reporting and inspection without modifying the stack
     std::vector<T> toVector() const {
         std::vector<T> result;
-        result.reserve(count);
-        Node* curr = topNode;
-        while (curr != nullptr) {
-            result.push_back(curr->data);
-            curr = curr->next;
+        result.reserve(impl.size());
+        std::stack<T> copy = impl;
+        while (!copy.empty()) {
+            result.push_back(copy.top());
+            copy.pop();
         }
         return result;
     }
