@@ -1,7 +1,7 @@
 db_host=localhost
 db_port=3306
-db_user=root
-db_password=12345
+db_user=PLACEHOLDER_DB_USER
+db_password=PLACEHOLDER_DB_PASSWORD
 db_name=where_my_bus
-mysql_path=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe
-open_browser=yes              
+mysql_path=mysql              # full path to mysql.exe if "mysql" is not in PATH
+open_browser=yes              # Windows only , replace with config.txt
